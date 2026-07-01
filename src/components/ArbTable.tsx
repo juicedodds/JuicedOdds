@@ -63,7 +63,7 @@ export default function ArbTable({
                         href={bookUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-block rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10"
+                        className="mt-2 inline-block whitespace-nowrap rounded border border-white/20 px-3 py-1.5 text-xs font-medium text-gray-200 hover:border-positive hover:bg-positive/10 hover:text-positive"
                       >
                         Bet on {leg.bookTitle} →
                       </a>

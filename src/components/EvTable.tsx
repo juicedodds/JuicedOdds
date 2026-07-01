@@ -28,7 +28,7 @@ export default function EvTable({ bets, totalStake }: { bets: PlusEvBet[]; total
         pre-fill a specific selection and stake, so you&apos;ll still need to find the game once there.
       </p>
       <div className="overflow-x-auto rounded-lg border border-white/10">
-        <table className="w-full min-w-[1000px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-gray-400">
             <tr>
               <th className="px-3 py-2">EV</th>
@@ -42,7 +42,7 @@ export default function EvTable({ bets, totalStake }: { bets: PlusEvBet[]; total
               <th className="px-3 py-2">Stake</th>
               <th className="px-3 py-2">To Win</th>
               <th className="px-3 py-2">Kickoff</th>
-              <th className="px-3 py-2"></th>
+              <th className="w-20 px-3 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -72,13 +72,13 @@ export default function EvTable({ bets, totalStake }: { bets: PlusEvBet[]; total
                   <td className="px-3 py-2">{formatUSD(totalStake)}</td>
                   <td className="px-3 py-2 text-positive">{formatUSD(toWin)}</td>
                   <td className="px-3 py-2 text-gray-400">{formatKickoff(bet.commenceTime)}</td>
-                  <td className="px-3 py-2">
+                  <td className="whitespace-nowrap px-3 py-2">
                     {bookUrl && (
                       <a
                         href={bookUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded border border-white/20 px-2 py-1 text-xs text-gray-300 hover:bg-white/10"
+                        className="inline-block whitespace-nowrap rounded border border-white/20 px-3 py-1.5 text-xs font-medium text-gray-200 hover:border-positive hover:bg-positive/10 hover:text-positive"
                       >
                         Bet →
                       </a>

@@ -128,8 +128,10 @@ export async function fetchRawEvents(sportKey: string, markets: string, apiKey: 
   const res = await fetch(url, {
     // Shared cache across all visitors. Must stay >= the client's poll
     // interval (see Dashboard.tsx) — otherwise every poll forces a fresh,
-    // quota-billed upstream call instead of reusing the cache.
-    next: { revalidate: 600 },
+    // quota-billed upstream call instead of reusing the cache. Short window
+    // is affordable on the paid Odds API plan; the old 10-minute window was
+    // sized for the free tier's 500/month quota.
+    next: { revalidate: 30 },
   });
 
   if (!res.ok) {
