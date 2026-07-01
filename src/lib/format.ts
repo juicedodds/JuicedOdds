@@ -22,5 +22,6 @@ export function formatMarket(marketKey: string, point?: number): string {
   if (marketKey === "h2h") return "Moneyline";
   if (marketKey === "spreads") return `Spread ${point !== undefined && point > 0 ? "+" : ""}${point ?? ""}`;
   if (marketKey === "totals") return `Total ${point ?? ""}`;
+  if (marketKey === "outrights") return "Tournament Winner";
   return marketKey;
 }

@@ -42,10 +42,12 @@ export interface MarketGroup {
   eventId: string;
   sportKey: string;
   sportTitle: string;
-  homeTeam: string;
-  awayTeam: string;
+  // Human-readable event descriptor: "Away @ Home" for matchup sports, or
+  // the tournament name for outright/futures markets (golf) which have no
+  // home/away teams.
+  eventLabel: string;
   commenceTime: string;
-  marketKey: "h2h" | "spreads" | "totals";
+  marketKey: "h2h" | "spreads" | "totals" | "outrights";
   point?: number; // shared line for spreads/totals groups
   outcomes: OutcomeGroup[];
 }
@@ -134,7 +136,7 @@ export function findPlusEvBets(groups: MarketGroup[]): PlusEvBet[] {
           results.push({
             eventId: group.eventId,
             sportTitle: group.sportTitle,
-            matchup: `${group.awayTeam} @ ${group.homeTeam}`,
+            matchup: group.eventLabel,
             commenceTime: group.commenceTime,
             marketKey: group.marketKey,
             point: outcome.point,
@@ -191,6 +193,10 @@ export function findArbitrageOpportunities(groups: MarketGroup[]): ArbitrageOppo
   const results: ArbitrageOpportunity[] = [];
 
   for (const group of groups) {
+    // Outright/futures markets (e.g. golf tournament winner) can have 100+
+    // outcomes — "arbitrage" would require covering every single one, which
+    // isn't a realistic bet pattern and isn't what this feature means here.
+    if (group.marketKey === "outrights") continue;
     if (group.outcomes.length < 2) continue;
     if (group.outcomes.some((o) => o.prices.length === 0)) continue;
 
@@ -227,7 +233,7 @@ export function findArbitrageOpportunities(groups: MarketGroup[]): ArbitrageOppo
     results.push({
       eventId: group.eventId,
       sportTitle: group.sportTitle,
-      matchup: `${group.awayTeam} @ ${group.homeTeam}`,
+      matchup: group.eventLabel,
       commenceTime: group.commenceTime,
       marketKey: group.marketKey,
       point: group.outcomes[0]?.point,

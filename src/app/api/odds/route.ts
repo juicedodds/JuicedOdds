@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SPORTS, fetchRawEvents, transformToMarketGroups, OddsApiError } from "@/lib/oddsApi";
+import { getAllSports, fetchRawEvents, transformToMarketGroups, OddsApiError } from "@/lib/oddsApi";
 import { findPlusEvBets, findArbitrageOpportunities, type MarketGroup } from "@/lib/oddsMath";
 
 export const revalidate = 600;
@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sportFilter = searchParams.get("sport"); // e.g. "NFL", or omitted = all
 
-  const sportsToFetch = sportFilter ? SPORTS.filter((s) => s.title === sportFilter) : SPORTS;
+  const allSports = await getAllSports(apiKey);
+  const sportsToFetch = sportFilter ? allSports.filter((s) => s.title === sportFilter) : allSports;
 
   const allGroups: MarketGroup[] = [];
   const errors: string[] = [];
@@ -24,12 +25,12 @@ export async function GET(request: Request) {
   await Promise.all(
     sportsToFetch.map(async (sport) => {
       try {
-        const raw = await fetchRawEvents(sport.key, apiKey);
+        const raw = await fetchRawEvents(sport.key, sport.markets, apiKey);
         const groups = transformToMarketGroups(raw, sport.title);
         allGroups.push(...groups);
       } catch (err) {
         const message = err instanceof OddsApiError ? err.message : String(err);
-        errors.push(`${sport.title}: ${message}`);
+        errors.push(`${sport.title} (${sport.key}): ${message}`);
       }
     }),
   );
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     generatedAt: new Date().toISOString(),
-    sportsChecked: sportsToFetch.map((s) => s.title),
+    sportsChecked: [...new Set(sportsToFetch.map((s) => s.title))],
     eventCount: new Set(allGroups.map((g) => g.eventId)).size,
     plusEv,
     arbitrage,

@@ -15,7 +15,7 @@ interface OddsResponse {
   error?: string;
 }
 
-const SPORT_TABS = ["All", "NFL", "NBA", "MLB", "NHL"];
+const SPORT_TABS = ["All", "NFL", "NBA", "WNBA", "MLB", "NHL", "Soccer", "Tennis", "Golf", "MMA", "Boxing"];
 // Must stay >= the server cache window (see revalidate in oddsApi.ts) —
 // polling faster than the cache refreshes just burns Odds API quota for no
 // new data.
