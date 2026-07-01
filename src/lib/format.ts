@@ -7,6 +7,10 @@ export function formatPct(pct: number, digits = 1): string {
   return `${pct.toFixed(digits)}%`;
 }
 
+export function formatUSD(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
 export function formatKickoff(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {

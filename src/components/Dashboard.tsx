@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [sport, setSport] = useState("All");
   const [tab, setTab] = useState<"ev" | "arb">("ev");
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [totalStake, setTotalStake] = useState(100);
+  const [justRefreshed, setJustRefreshed] = useState(false);
 
   const load = useCallback(async (selectedSport: string) => {
     setLoading(true);
@@ -45,6 +47,8 @@ export default function Dashboard() {
       setFetchError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+      setJustRefreshed(true);
+      setTimeout(() => setJustRefreshed(false), 2000);
     }
   }, []);
 
@@ -70,7 +74,10 @@ export default function Dashboard() {
         <div className="text-right text-xs text-gray-500">
           {data && <p>Updated {new Date(data.generatedAt).toLocaleTimeString()}</p>}
           {data && <p>{data.eventCount} events scanned</p>}
-          <p className="mt-1">Data cached up to 10 min to conserve API quota</p>
+          <p className="mt-1">
+            Data cached up to 10 min to conserve API quota — refreshing may return the same numbers if the cache
+            hasn&apos;t rolled over yet.
+          </p>
           <div className="mt-1 flex items-center justify-end gap-2">
             <label className="flex items-center gap-1 text-gray-400">
               <input
@@ -83,13 +90,32 @@ export default function Dashboard() {
             </label>
             <button
               onClick={() => load(sport)}
-              className="rounded border border-white/20 px-2 py-1 text-gray-300 hover:bg-white/10"
+              disabled={loading}
+              className="rounded border border-white/20 px-2 py-1 text-gray-300 hover:bg-white/10 disabled:opacity-50"
             >
-              Refresh now
+              {loading ? "Refreshing…" : justRefreshed ? "✓ Refreshed" : "Refresh now"}
             </button>
           </div>
         </div>
       </header>
+
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <label htmlFor="totalStake" className="text-gray-400">
+          Total stake per bet: $
+        </label>
+        <input
+          id="totalStake"
+          type="number"
+          min={1}
+          step={1}
+          value={totalStake}
+          onChange={(e) => setTotalStake(Math.max(1, Number(e.target.value) || 1))}
+          className="w-24 rounded border border-white/20 bg-white/5 px-2 py-1 text-white"
+        />
+        <span className="text-xs text-gray-500">
+          Used to size the stake amounts shown below (arbitrage splits this across legs by implied probability).
+        </span>
+      </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {SPORT_TABS.map((s) => (
@@ -141,9 +167,9 @@ export default function Dashboard() {
           Loading odds…
         </div>
       ) : tab === "ev" ? (
-        <EvTable bets={data?.plusEv ?? []} />
+        <EvTable bets={data?.plusEv ?? []} totalStake={totalStake} />
       ) : (
-        <ArbTable opportunities={data?.arbitrage ?? []} />
+        <ArbTable opportunities={data?.arbitrage ?? []} totalStake={totalStake} />
       )}
 
       <footer className="mt-10 space-y-2 border-t border-white/10 pt-4 text-xs text-gray-500">
