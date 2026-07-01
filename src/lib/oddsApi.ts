@@ -10,28 +10,31 @@ export const SPORTS: { key: string; title: string }[] = [
 ];
 
 const MARKETS = "h2h,spreads,totals";
-// The Odds API doesn't cleanly separate regulated vs. offshore books by
-// region — "us" alone mixes DraftKings/FanDuel/BetMGM with offshore books
-// like Bovada and MyBookie.ag. So we fetch both "us" and "us2" and filter to
-// an explicit whitelist of regulated US sportsbooks below. Caesars
-// (williamhill_us) and Fanatics only return data on paid Odds API plans.
-const REGIONS = "us,us2";
 
-const REGULATED_US_BOOKS = new Set([
+// The Odds API bills quota as (markets requested) x (regions requested), and
+// treats every 10 bookmakers named via the `bookmakers` param as 1 "region"
+// for that formula. Naming an explicit list of <=10 regulated US books (vs.
+// requesting regions=us,us2, which is 2 regions and pulls in offshore books
+// like Bovada/MyBookie.ag we'd just filter out anyway) cuts quota cost in
+// half: 3 markets x 1 region-equivalent = 3 credits/sport instead of 6.
+// Caesars (williamhill_us) and Fanatics only return data on paid Odds API
+// plans; they're included so the dashboard picks them up automatically if
+// the plan is ever upgraded, at no extra quota cost since they return no
+// data on the free tier.
+const REGULATED_US_BOOKS = [
   "draftkings",
   "fanduel",
   "betmgm",
-  "williamhill_us", // Caesars — paid Odds API plans only
-  "fanatics", // paid Odds API plans only
   "betrivers",
   "espnbet", // theScore Bet, formerly ESPN Bet
   "ballybet",
   "betparx",
   "hardrockbet",
-  "hardrockbet_az",
-  "hardrockbet_fl",
-  "hardrockbet_oh",
-]);
+  "williamhill_us", // Caesars — paid Odds API plans only
+  "fanatics", // paid Odds API plans only
+];
+const REGULATED_US_BOOKS_SET = new Set(REGULATED_US_BOOKS);
+const BOOKMAKERS_PARAM = REGULATED_US_BOOKS.join(",");
 
 interface RawOutcome {
   name: string;
@@ -73,10 +76,13 @@ export class OddsApiError extends Error {
 }
 
 export async function fetchRawEvents(sportKey: string, apiKey: string): Promise<RawEvent[]> {
-  const url = `${BASE_URL}/sports/${sportKey}/odds?apiKey=${apiKey}&regions=${REGIONS}&markets=${MARKETS}&oddsFormat=american&dateFormat=iso`;
+  const url = `${BASE_URL}/sports/${sportKey}/odds?apiKey=${apiKey}&bookmakers=${BOOKMAKERS_PARAM}&markets=${MARKETS}&oddsFormat=american&dateFormat=iso`;
 
   const res = await fetch(url, {
-    next: { revalidate: 45 }, // shared cache across all visitors, refreshed at most every 45s
+    // Shared cache across all visitors. Must stay >= the client's poll
+    // interval (see Dashboard.tsx) — otherwise every poll forces a fresh,
+    // quota-billed upstream call instead of reusing the cache.
+    next: { revalidate: 600 },
   });
 
   if (!res.ok) {
@@ -97,7 +103,7 @@ export function transformToMarketGroups(events: RawEvent[], sportTitle: string):
     const byMarket = new Map<string, Map<string, OutcomeGroup>>();
 
     for (const bookmaker of event.bookmakers) {
-      if (!REGULATED_US_BOOKS.has(bookmaker.key)) continue;
+      if (!REGULATED_US_BOOKS_SET.has(bookmaker.key)) continue;
       for (const market of bookmaker.markets) {
         if (!["h2h", "spreads", "totals"].includes(market.key)) continue;
 

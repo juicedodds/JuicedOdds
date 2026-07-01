@@ -16,7 +16,10 @@ interface OddsResponse {
 }
 
 const SPORT_TABS = ["All", "NFL", "NBA", "MLB", "NHL"];
-const REFRESH_MS = 60_000;
+// Must stay >= the server cache window (see revalidate in oddsApi.ts) —
+// polling faster than the cache refreshes just burns Odds API quota for no
+// new data.
+const AUTO_REFRESH_MS = 600_000;
 
 export default function Dashboard() {
   const [data, setData] = useState<OddsResponse | null>(null);
@@ -24,6 +27,7 @@ export default function Dashboard() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sport, setSport] = useState("All");
   const [tab, setTab] = useState<"ev" | "arb">("ev");
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const load = useCallback(async (selectedSport: string) => {
     setLoading(true);
@@ -46,9 +50,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     load(sport);
-    const id = setInterval(() => load(sport), REFRESH_MS);
-    return () => clearInterval(id);
   }, [sport, load]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => load(sport), AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [autoRefresh, sport, load]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -62,12 +70,24 @@ export default function Dashboard() {
         <div className="text-right text-xs text-gray-500">
           {data && <p>Updated {new Date(data.generatedAt).toLocaleTimeString()}</p>}
           {data && <p>{data.eventCount} events scanned</p>}
-          <button
-            onClick={() => load(sport)}
-            className="mt-1 rounded border border-white/20 px-2 py-1 text-gray-300 hover:bg-white/10"
-          >
-            Refresh now
-          </button>
+          <p className="mt-1">Data cached up to 10 min to conserve API quota</p>
+          <div className="mt-1 flex items-center justify-end gap-2">
+            <label className="flex items-center gap-1 text-gray-400">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="accent-positive"
+              />
+              Auto-refresh (10 min)
+            </label>
+            <button
+              onClick={() => load(sport)}
+              className="rounded border border-white/20 px-2 py-1 text-gray-300 hover:bg-white/10"
+            >
+              Refresh now
+            </button>
+          </div>
         </div>
       </header>
 

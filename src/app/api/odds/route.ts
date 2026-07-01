@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { SPORTS, fetchRawEvents, transformToMarketGroups, OddsApiError } from "@/lib/oddsApi";
 import { findPlusEvBets, findArbitrageOpportunities, type MarketGroup } from "@/lib/oddsMath";
 
-export const revalidate = 45;
+export const revalidate = 600;
 
 export async function GET(request: Request) {
   const apiKey = process.env.ODDS_API_KEY;
