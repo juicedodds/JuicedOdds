@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PlusEvBet, ArbitrageOpportunity } from "@/lib/oddsMath";
+import { BOOKS } from "@/lib/books";
 import EvTable from "./EvTable";
 import ArbTable from "./ArbTable";
 
@@ -20,6 +21,7 @@ const SPORT_TABS = ["All", "NFL", "NBA", "WNBA", "MLB", "NHL", "Soccer", "Tennis
 // polling faster than the cache refreshes just burns Odds API quota for no
 // new data.
 const AUTO_REFRESH_MS = 30_000;
+const BOOK_FILTER_STORAGE_KEY = "positive-bets:hidden-books";
 
 export default function Dashboard() {
   const [data, setData] = useState<OddsResponse | null>(null);
@@ -30,6 +32,41 @@ export default function Dashboard() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [totalStake, setTotalStake] = useState(100);
   const [justRefreshed, setJustRefreshed] = useState(false);
+  const [hiddenBooks, setHiddenBooks] = useState<Set<string>>(new Set());
+
+  // Load saved book preferences after mount (avoids an SSR/client hydration
+  // mismatch, since localStorage isn't available on the server).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(BOOK_FILTER_STORAGE_KEY);
+      if (saved) setHiddenBooks(new Set(JSON.parse(saved)));
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+  }, []);
+
+  const toggleBook = (bookKey: string) => {
+    setHiddenBooks((prev) => {
+      const next = new Set(prev);
+      if (next.has(bookKey)) next.delete(bookKey);
+      else next.add(bookKey);
+      try {
+        localStorage.setItem(BOOK_FILTER_STORAGE_KEY, JSON.stringify([...next]));
+      } catch {
+        // ignore unavailable storage (e.g. private browsing)
+      }
+      return next;
+    });
+  };
+
+  const filteredPlusEv = useMemo(
+    () => (data?.plusEv ?? []).filter((bet) => !hiddenBooks.has(bet.bookKey)),
+    [data, hiddenBooks],
+  );
+  const filteredArbitrage = useMemo(
+    () => (data?.arbitrage ?? []).filter((arb) => arb.legs.every((leg) => !hiddenBooks.has(leg.bookKey))),
+    [data, hiddenBooks],
+  );
 
   const load = useCallback(async (selectedSport: string) => {
     setLoading(true);
@@ -114,6 +151,26 @@ export default function Dashboard() {
         </span>
       </div>
 
+      <div className="mb-4">
+        <p className="mb-1 text-sm text-gray-400">
+          Books to include{" "}
+          <span className="text-xs text-gray-500">(uncheck any you don&apos;t have an account with)</span>
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {BOOKS.map((book) => (
+            <label key={book.key} className="flex items-center gap-1.5 text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={!hiddenBooks.has(book.key)}
+                onChange={() => toggleBook(book.key)}
+                className="accent-positive"
+              />
+              {book.title}
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="mb-4 flex flex-wrap gap-2">
         {SPORT_TABS.map((s) => (
           <button
@@ -135,7 +192,7 @@ export default function Dashboard() {
             tab === "ev" ? "border-b-2 border-positive text-white" : "text-gray-400 hover:text-gray-200"
           }`}
         >
-          +EV Bets {data ? `(${data.plusEv.length})` : ""}
+          +EV Bets {data ? `(${filteredPlusEv.length})` : ""}
         </button>
         <button
           onClick={() => setTab("arb")}
@@ -143,7 +200,7 @@ export default function Dashboard() {
             tab === "arb" ? "border-b-2 border-positive text-white" : "text-gray-400 hover:text-gray-200"
           }`}
         >
-          Arbitrage {data ? `(${data.arbitrage.length})` : ""}
+          Arbitrage {data ? `(${filteredArbitrage.length})` : ""}
         </button>
       </div>
 
@@ -164,9 +221,9 @@ export default function Dashboard() {
           Loading odds…
         </div>
       ) : tab === "ev" ? (
-        <EvTable bets={data?.plusEv ?? []} totalStake={totalStake} />
+        <EvTable bets={filteredPlusEv} totalStake={totalStake} />
       ) : (
-        <ArbTable opportunities={data?.arbitrage ?? []} totalStake={totalStake} />
+        <ArbTable opportunities={filteredArbitrage} totalStake={totalStake} />
       )}
 
       <footer className="mt-10 space-y-2 border-t border-white/10 pt-4 text-xs text-gray-500">

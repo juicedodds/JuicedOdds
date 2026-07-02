@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { PlusEvBet } from "@/lib/oddsMath";
 import { formatAmerican, formatKickoff, formatMarket, formatPct, formatUSD } from "@/lib/format";
-import { getBookUrl } from "@/lib/bookLinks";
+import { getBookUrl } from "@/lib/books";
 
 type SortKey = "ev" | "offered" | "kickoff";
 type SortDir = "asc" | "desc";

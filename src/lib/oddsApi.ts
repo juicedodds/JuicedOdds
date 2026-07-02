@@ -1,4 +1,5 @@
 import { americanToDecimal, type MarketGroup, type OutcomeGroup, type BookPrice } from "./oddsMath";
+import { BOOKS } from "./books";
 
 const BASE_URL = "https://api.the-odds-api.com/v4";
 
@@ -68,20 +69,8 @@ export async function getAllSports(apiKey: string): Promise<SportConfig[]> {
 // requesting regions=us,us2, which is 2 regions and pulls in offshore books
 // like Bovada/MyBookie.ag we'd just filter out anyway) cuts quota cost in
 // half: 3 markets x 1 region-equivalent = 3 credits/sport instead of 6.
-const REGULATED_US_BOOKS = [
-  "draftkings",
-  "fanduel",
-  "betmgm",
-  "betrivers",
-  "espnbet", // theScore Bet, formerly ESPN Bet
-  "ballybet",
-  "betparx",
-  "hardrockbet",
-  "williamhill_us", // Caesars
-  "fanatics",
-];
-const REGULATED_US_BOOKS_SET = new Set(REGULATED_US_BOOKS);
-const BOOKMAKERS_PARAM = REGULATED_US_BOOKS.join(",");
+const REGULATED_US_BOOKS_SET = new Set(BOOKS.map((b) => b.key));
+const BOOKMAKERS_PARAM = BOOKS.map((b) => b.key).join(",");
 
 interface RawOutcome {
   name: string;

@@ -2,7 +2,7 @@
 
 import type { ArbitrageOpportunity } from "@/lib/oddsMath";
 import { formatAmerican, formatKickoff, formatMarket, formatPct, formatUSD } from "@/lib/format";
-import { getBookUrl } from "@/lib/bookLinks";
+import { getBookUrl } from "@/lib/books";
 
 export default function ArbTable({
   opportunities,
